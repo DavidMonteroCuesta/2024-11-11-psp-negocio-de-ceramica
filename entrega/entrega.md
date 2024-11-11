@@ -1,6 +1,6 @@
 # NEGOCIO DE CERÁMICA PSP
 ```
-git clone 
+git clone https://github.com/DavidMonteroCuesta/2024-11-11-psp-negocio-de-ceramica
 ```
 ## DISEÑO Y ANÁLISIS
 ![DISENYO Y ANALISIS](./imagenes/analisis-disenyo.jpeg)
@@ -11,4 +11,138 @@ Este proyecto simula un negocio con dos trabajadores, un alfarero y un vendedor,
 
 ## CÓDIGO
 
-### CLASE 
+### CLASE NEGOCIO
+```
+package es.etg.psp.dmc.ngc.crmc;
+
+import es.etg.psp.dmc.ngc.crmc.trabajadores.TipoTrabajador;
+import es.etg.psp.dmc.ngc.crmc.trabajadores.factory.TrabajadorFactory;
+
+public class Negocio implements TrabajadorFactory{
+    public static void main(String[] args){
+        Thread alfarero = new Thread(TrabajadorFactory.definir(TipoTrabajador.ALFARERO));
+        alfarero.start();
+
+        Thread vendedor = new Thread(TrabajadorFactory.definir(TipoTrabajador.VENDEDOR));
+        vendedor.start();
+    }
+}
+```
+
+### CLASE EXPOSICIÓN
+```
+package es.etg.psp.dmc.ngc.crmc.galerias;
+
+public class Exposicion {
+    private static final int MIN_OBRAS = 0;
+    private static final int MAX_OBRAS = 1;
+    private static int contador = 0;
+
+    public static synchronized void reponer() throws InterruptedException{
+        if (contador >= MAX_OBRAS)
+            Exposicion.class.wait();
+
+        contador++;
+        Exposicion.class.notify();
+        System.out.println("REPONER");
+    }
+
+    public static synchronized void vender() throws InterruptedException{
+        if (contador <= MIN_OBRAS)
+            Exposicion.class.wait();
+            
+        contador--;
+        Exposicion.class.notify();
+        System.out.println("VENDER");
+    }
+
+    public static int getContador() {
+        return contador;
+    }
+
+    public static void setContador(int contador) {
+        Exposicion.contador = contador;
+    }
+}
+```
+
+### ENUM TIPO TRABAJADOR
+```
+package es.etg.psp.dmc.ngc.crmc.trabajadores;
+
+public enum TipoTrabajador {
+    ALFARERO,
+    VENDEDOR
+}
+```
+
+### CLASE TRABAJADOR
+```
+package es.etg.psp.dmc.ngc.crmc.trabajadores.factory;
+
+public abstract class Trabajador implements Runnable{
+    public abstract void trabajar();
+
+    @Override
+    public void run() {
+        trabajar();
+    }
+}
+```
+
+### CLASE ALFARERO
+```
+package es.etg.psp.dmc.ngc.crmc.trabajadores.factory;
+
+import es.etg.psp.dmc.ngc.crmc.galerias.Exposicion;
+
+public class Alfarero extends Trabajador{
+
+    @Override
+    public void trabajar() {
+        for (int i = 0; i < 10; i++) {
+            try {
+                Exposicion.reponer();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+    
+}
+```
+
+### CLASE VENDEDOR
+```
+ppackage es.etg.psp.dmc.ngc.crmc.trabajadores.factory;
+
+import es.etg.psp.dmc.ngc.crmc.galerias.Exposicion;
+
+public class Vendedor extends Trabajador{
+
+    @Override
+    public void trabajar() {
+        for (int i = 0; i < 10; i++) {
+            try {
+                Exposicion.vender();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+}
+```
+
+### INTERFAZ TRABAJADOR FACTORY
+```
+package es.etg.psp.dmc.ngc.crmc.trabajadores.factory;
+
+import es.etg.psp.dmc.ngc.crmc.trabajadores.TipoTrabajador;
+
+public interface TrabajadorFactory {
+    public static Trabajador definir(TipoTrabajador tipo){
+        if (tipo == TipoTrabajador.ALFARERO) return new Alfarero();
+        return new Vendedor();
+    }
+}
+```
